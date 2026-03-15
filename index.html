@@ -79,12 +79,248 @@
 </style>
 </head>
 <body>
+<div id="start-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.9);z-index:999;display:flex;align-items:center;justify-content:center;cursor:pointer;">
+  <div style="text-align:center;font-family:'Bangers',Arial,sans-serif;color:#ff0040;font-size:48px;text-shadow:0 0 30px #ff0040,0 0 60px #ff6b00;letter-spacing:4px;">
+    CLICK TO UNLEASH HATRED
+    <div style="font-size:20px;color:#888;margin-top:20px;text-shadow:none;">🔊 sound on 🔊</div>
+  </div>
+</div>
 <canvas id="bg"></canvas>
 <div id="trail-container"></div>
 <div id="dvd">I Hate Justin Monahan</div>
 <div id="flash" class="screen-flash"></div>
 
 <script>
+  // --- INTENSE PROCEDURAL MUSIC ENGINE ---
+  let audioStarted = false;
+
+  function startMusic() {
+    if (audioStarted) return;
+    audioStarted = true;
+
+    const AC = new (window.AudioContext || window.webkitAudioContext)();
+    const master = AC.createGain();
+    master.gain.value = 0.7;
+    master.connect(AC.destination);
+
+    // Compressor to glue it together
+    const comp = AC.createDynamicsCompressor();
+    comp.threshold.value = -20;
+    comp.ratio.value = 12;
+    comp.attack.value = 0.002;
+    comp.release.value = 0.1;
+    comp.connect(master);
+
+    // Distortion curve
+    function makeDistCurve(amount) {
+      const n = 44100, curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) {
+        const x = (i * 2) / n - 1;
+        curve[i] = ((3 + amount) * x * 20 * (Math.PI / 180)) / (Math.PI + amount * Math.abs(x));
+      }
+      return curve;
+    }
+
+    const BPM = 150;
+    const beatTime = 60 / BPM;
+    const barTime = beatTime * 4;
+    let nextBeat = AC.currentTime + 0.05;
+
+    // Bass notes pattern (minor key madness)
+    const bassNotes = [55, 55, 65.41, 73.42, 55, 55, 82.41, 73.42]; // A1, A1, C2, D2, A1, A1, E2, D2
+    let bassIndex = 0;
+
+    // Lead melody pattern
+    const leadNotes = [440, 523.25, 587.33, 523.25, 659.25, 587.33, 523.25, 440,
+                       392, 440, 523.25, 440, 349.23, 392, 440, 523.25];
+    let leadIndex = 0;
+
+    function kick(time) {
+      const osc = AC.createOscillator();
+      const gain = AC.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(150, time);
+      osc.frequency.exponentialRampToValueAtTime(30, time + 0.12);
+      gain.gain.setValueAtTime(1.0, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + 0.3);
+      osc.connect(gain);
+      gain.connect(comp);
+      osc.start(time);
+      osc.stop(time + 0.3);
+
+      // Click layer
+      const click = AC.createOscillator();
+      const clickGain = AC.createGain();
+      click.type = 'square';
+      click.frequency.setValueAtTime(800, time);
+      click.frequency.exponentialRampToValueAtTime(100, time + 0.02);
+      clickGain.gain.setValueAtTime(0.6, time);
+      clickGain.gain.exponentialRampToValueAtTime(0.001, time + 0.03);
+      click.connect(clickGain);
+      clickGain.connect(comp);
+      click.start(time);
+      click.stop(time + 0.05);
+    }
+
+    function snare(time) {
+      // Noise burst
+      const bufSize = AC.sampleRate * 0.15;
+      const buf = AC.createBuffer(1, bufSize, AC.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = AC.createBufferSource();
+      noise.buffer = buf;
+      const noiseGain = AC.createGain();
+      noiseGain.gain.setValueAtTime(0.8, time);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, time + 0.15);
+      const hipass = AC.createBiquadFilter();
+      hipass.type = 'highpass';
+      hipass.frequency.value = 2000;
+      noise.connect(hipass);
+      hipass.connect(noiseGain);
+      noiseGain.connect(comp);
+      noise.start(time);
+      noise.stop(time + 0.15);
+
+      // Body
+      const osc = AC.createOscillator();
+      const oscGain = AC.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(200, time);
+      osc.frequency.exponentialRampToValueAtTime(80, time + 0.05);
+      oscGain.gain.setValueAtTime(0.7, time);
+      oscGain.gain.exponentialRampToValueAtTime(0.001, time + 0.1);
+      osc.connect(oscGain);
+      oscGain.connect(comp);
+      osc.start(time);
+      osc.stop(time + 0.1);
+    }
+
+    function hihat(time, open) {
+      const bufSize = AC.sampleRate * (open ? 0.15 : 0.05);
+      const buf = AC.createBuffer(1, bufSize, AC.sampleRate);
+      const data = buf.getChannelData(0);
+      for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+      const noise = AC.createBufferSource();
+      noise.buffer = buf;
+      const gain = AC.createGain();
+      gain.gain.setValueAtTime(open ? 0.25 : 0.2, time);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + (open ? 0.15 : 0.05));
+      const hp = AC.createBiquadFilter();
+      hp.type = 'highpass';
+      hp.frequency.value = 7000;
+      noise.connect(hp);
+      hp.connect(gain);
+      gain.connect(comp);
+      noise.start(time);
+      noise.stop(time + (open ? 0.2 : 0.06));
+    }
+
+    function bass(time, freq) {
+      const osc = AC.createOscillator();
+      const osc2 = AC.createOscillator();
+      const gain = AC.createGain();
+      const dist = AC.createWaveShaper();
+      dist.curve = makeDistCurve(50);
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      osc2.type = 'square';
+      osc2.frequency.value = freq * 1.005;
+      gain.gain.setValueAtTime(0.35, time);
+      gain.gain.setValueAtTime(0.35, time + beatTime * 0.8);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + beatTime * 0.95);
+      const lp = AC.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(300, time);
+      lp.frequency.linearRampToValueAtTime(800, time + beatTime * 0.3);
+      lp.frequency.linearRampToValueAtTime(200, time + beatTime * 0.8);
+      lp.Q.value = 8;
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(dist);
+      dist.connect(lp);
+      lp.connect(comp);
+      osc.start(time);
+      osc.stop(time + beatTime);
+      osc2.start(time);
+      osc2.stop(time + beatTime);
+    }
+
+    function lead(time, freq) {
+      const osc = AC.createOscillator();
+      const osc2 = AC.createOscillator();
+      const gain = AC.createGain();
+      const dist = AC.createWaveShaper();
+      dist.curve = makeDistCurve(80);
+      osc.type = 'sawtooth';
+      osc.frequency.value = freq;
+      osc2.type = 'sawtooth';
+      osc2.frequency.value = freq * 1.01;
+      const halfBeat = beatTime * 0.5;
+      gain.gain.setValueAtTime(0.001, time);
+      gain.gain.linearRampToValueAtTime(0.15, time + 0.02);
+      gain.gain.setValueAtTime(0.15, time + halfBeat * 0.7);
+      gain.gain.exponentialRampToValueAtTime(0.001, time + halfBeat * 0.95);
+      const lp = AC.createBiquadFilter();
+      lp.type = 'lowpass';
+      lp.frequency.setValueAtTime(1200, time);
+      lp.frequency.linearRampToValueAtTime(3000, time + halfBeat * 0.3);
+      lp.frequency.linearRampToValueAtTime(800, time + halfBeat * 0.8);
+      lp.Q.value = 5;
+      osc.connect(gain);
+      osc2.connect(gain);
+      gain.connect(dist);
+      dist.connect(lp);
+      lp.connect(comp);
+      osc.start(time);
+      osc.stop(time + halfBeat);
+      osc2.start(time);
+      osc2.stop(time + halfBeat);
+    }
+
+    function scheduleBar(barStart) {
+      for (let beat = 0; beat < 4; beat++) {
+        const t = barStart + beat * beatTime;
+
+        // Kick on every beat
+        kick(t);
+
+        // Snare on 2 and 4
+        if (beat === 1 || beat === 3) snare(t);
+
+        // Hi-hats: 8th notes
+        hihat(t, false);
+        hihat(t + beatTime * 0.5, beat === 3);
+
+        // Bass on every beat
+        bass(t, bassNotes[bassIndex % bassNotes.length]);
+        bassIndex++;
+
+        // Lead: 8th notes
+        lead(t, leadNotes[leadIndex % leadNotes.length]);
+        leadIndex++;
+        lead(t + beatTime * 0.5, leadNotes[leadIndex % leadNotes.length]);
+        leadIndex++;
+      }
+    }
+
+    // Schedule ahead loop
+    function scheduler() {
+      while (nextBeat < AC.currentTime + 0.3) {
+        scheduleBar(nextBeat);
+        nextBeat += barTime;
+      }
+      setTimeout(scheduler, 100);
+    }
+    scheduler();
+  }
+
+  // Click to start (required for audio context)
+  document.getElementById('start-overlay').addEventListener('click', function() {
+    this.style.display = 'none';
+    startMusic();
+  });
+
   // --- Starfield background ---
   const canvas = document.getElementById('bg');
   const ctx = canvas.getContext('2d');
