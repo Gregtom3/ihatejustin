@@ -313,6 +313,32 @@
       setTimeout(scheduler, 100);
     }
     scheduler();
+
+    // --- "Justin... Justin..." voice every 5 seconds ---
+    function speakJustin() {
+      const utterance = new SpeechSynthesisUtterance('Justin... Justin...');
+      utterance.rate = 0.7;
+      utterance.pitch = 0.3;
+      utterance.volume = 1.0;
+      // Pick a deep/creepy voice if available
+      const voices = speechSynthesis.getVoices();
+      const preferred = voices.find(v => /male/i.test(v.name) && !/female/i.test(v.name))
+        || voices.find(v => /daniel|david|james|george/i.test(v.name))
+        || voices[0];
+      if (preferred) utterance.voice = preferred;
+      speechSynthesis.speak(utterance);
+    }
+
+    // Voices may load async
+    if (speechSynthesis.getVoices().length === 0) {
+      speechSynthesis.addEventListener('voiceschanged', () => {}, { once: true });
+    }
+
+    // First one after 2s, then every 5s
+    setTimeout(() => {
+      speakJustin();
+      setInterval(speakJustin, 5000);
+    }, 2000);
   }
 
   // Click to start (required for audio context)
