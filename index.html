@@ -314,9 +314,46 @@
     }
     scheduler();
 
-    // --- "Justin... Justin..." voice every 5 seconds ---
+    // --- Creepy insult voice every 5 seconds ---
+    const insults = [
+      'Justin... I hate you...',
+      'Justin... you are the worst...',
+      'Justin... nobody likes you...',
+      'Justin... you disgust me...',
+      'Justin... why are you like this...',
+      'Justin... you absolute clown...',
+      'Justin... you make me sick...',
+      'Justin... you ruined everything...',
+      'Justin... what a disappointment...',
+      'Justin... you are insufferable...',
+      'Justin... I cannot stand you...',
+      'Justin... you are a menace...',
+      'Justin... go away... forever...',
+      'Justin... you wet sock of a human...',
+      'Justin... you are aggressively mediocre...',
+      'Justin... even your shadow wants to leave...',
+      'Justin... you are the human equivalent of a participation trophy...',
+      'Justin... you bring nothing to the table...',
+      'Justin... you are a walking L...',
+      'Justin... the audacity... the sheer audacity...',
+      'Justin... you are why we can\'t have nice things...',
+      'Justin... I hope you step on a lego...',
+      'Justin... you are the soggy cereal of people...',
+      'Justin... your vibe is rancid...',
+      'Justin... even autocorrect gives up on you...',
+      'Justin... you peaked in kindergarten...',
+      'Justin... you are a human speed bump...',
+      'Justin... you have the charisma of a wet paper towel...',
+      'Justin... you are spare parts, bud...',
+      'Justin... you couldn\'t pour water out of a boot with instructions on the heel...',
+      'Justin... you are the reason shampoo has instructions...',
+    ];
+    let insultIndex = Math.floor(Math.random() * insults.length);
+
     function speakJustin() {
-      const utterance = new SpeechSynthesisUtterance('Justin... Justin...');
+      const text = insults[insultIndex % insults.length];
+      insultIndex++;
+      const utterance = new SpeechSynthesisUtterance(text);
       utterance.rate = 0.7;
       utterance.pitch = 0.3;
       utterance.volume = 1.0;
