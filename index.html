@@ -76,6 +76,26 @@
     opacity: 0;
     transition: opacity 0.05s ease-out;
   }
+  #caption {
+    position: fixed;
+    bottom: 60px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Bangers', 'Arial Black', Arial, sans-serif;
+    font-size: 32px;
+    color: #fff;
+    text-align: center;
+    z-index: 20;
+    pointer-events: none;
+    opacity: 0;
+    text-shadow: 0 0 10px rgba(255,0,64,0.8), 0 0 30px rgba(255,0,64,0.4), 2px 2px 0 #000;
+    background: rgba(0,0,0,0.6);
+    padding: 12px 28px;
+    border-radius: 8px;
+    letter-spacing: 2px;
+    max-width: 90vw;
+    transition: opacity 0.3s ease;
+  }
 </style>
 </head>
 <body>
@@ -89,6 +109,7 @@
 <div id="trail-container"></div>
 <div id="dvd">I Hate Justin Monahan</div>
 <div id="flash" class="screen-flash"></div>
+<div id="caption"></div>
 
 <script>
   // --- INTENSE PROCEDURAL MUSIC ENGINE ---
@@ -350,6 +371,9 @@
     ];
     let insultIndex = Math.floor(Math.random() * insults.length);
 
+    const captionEl = document.getElementById('caption');
+    let captionTimeout = null;
+
     function speakJustin() {
       const text = insults[insultIndex % insults.length];
       insultIndex++;
@@ -363,7 +387,31 @@
         || voices.find(v => /daniel|david|james|george/i.test(v.name))
         || voices[0];
       if (preferred) utterance.voice = preferred;
+
+      // Show caption
+      captionEl.textContent = text;
+      captionEl.style.opacity = '1';
+      if (captionTimeout) clearTimeout(captionTimeout);
+      utterance.onend = () => {
+        captionTimeout = setTimeout(() => {
+          captionEl.style.opacity = '0';
+        }, 500);
+      };
+      // Fallback hide in case onend doesn't fire
+      captionTimeout = setTimeout(() => {
+        captionEl.style.opacity = '0';
+      }, 4500);
+
       speechSynthesis.speak(utterance);
+
+      // Lower music during speech, bring it back after
+      master.gain.linearRampToValueAtTime(0.25, AC.currentTime + 0.1);
+      utterance.onend = () => {
+        master.gain.linearRampToValueAtTime(0.7, AC.currentTime + 0.3);
+        captionTimeout = setTimeout(() => {
+          captionEl.style.opacity = '0';
+        }, 500);
+      };
     }
 
     // Voices may load async
