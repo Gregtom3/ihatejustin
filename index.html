@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>I Hate Justin Monahan</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #000;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+  #dvd {
+    position: absolute;
+    font-family: 'Arial Black', Arial, sans-serif;
+    font-size: 48px;
+    font-weight: 900;
+    white-space: nowrap;
+    user-select: none;
+    transition: color 0s;
+  }
+</style>
+</head>
+<body>
+<div id="dvd">I Hate Justin Monahan</div>
+<script>
+  const el = document.getElementById('dvd');
+  let x = 100, y = 100;
+  let dx = 3, dy = 2;
+
+  const colors = [
+    '#ff0000', '#00ff00', '#0088ff', '#ff00ff',
+    '#ffff00', '#00ffff', '#ff8800', '#88ff00',
+    '#ff0088', '#8800ff', '#00ff88', '#ffffff'
+  ];
+  let colorIndex = 0;
+  el.style.color = colors[colorIndex];
+
+  function animate() {
+    const rect = el.getBoundingClientRect();
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    x += dx;
+    y += dy;
+
+    let hit = false;
+
+    if (x + rect.width >= w) {
+      x = w - rect.width;
+      dx = -dx;
+      hit = true;
+    } else if (x <= 0) {
+      x = 0;
+      dx = -dx;
+      hit = true;
+    }
+
+    if (y + rect.height >= h) {
+      y = h - rect.height;
+      dy = -dy;
+      hit = true;
+    } else if (y <= 0) {
+      y = 0;
+      dy = -dy;
+      hit = true;
+    }
+
+    if (hit) {
+      colorIndex = (colorIndex + 1) % colors.length;
+      el.style.color = colors[colorIndex];
+    }
+
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+
+    requestAnimationFrame(animate);
+  }
+
+  animate();
+</script>
+</body>
+</html>
